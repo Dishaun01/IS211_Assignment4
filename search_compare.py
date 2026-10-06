@@ -1,93 +1,94 @@
-import time
+"""Compare four search algorithms using 100 lists per size."""
+
 import random
+from time import perf_counter
 
 
-def get_me_random_list(n):
-    """Generate list of n elements in random order
-    
-    :params: n: Number of elements in the list
-    :returns: A list with n elements in random order
-    """
-    a_list = list(range(n))
-    random.shuffle(a_list)
-    return a_list
-
-
-def sequential_search(a_list, item):
-    pos = 0
+def sequential_search(numbers, item):
+    start = perf_counter()
+    position = 0
     found = False
-
-    while pos < len(a_list) and not found:
-        if a_list[pos] == item:
+    while position < len(numbers) and not found:
+        if numbers[position] == item:
             found = True
         else:
-            pos = pos + 1
+            position += 1
+    return found, perf_counter() - start
 
-    return found
 
-
-def ordered_sequential_search(a_list, item):
-    pos = 0
+def ordered_sequential_search(numbers, item):
+    """Search an ascending sorted list."""
+    start = perf_counter()
+    position = 0
     found = False
     stop = False
-    while pos < len(a_list) and not found and not stop:
-        if a_list[pos] == item:
+    while position < len(numbers) and not found and not stop:
+        if numbers[position] == item:
             found = True
+        elif numbers[position] > item:
+            stop = True
         else:
-            if a_list[pos] > item:
-                stop = True
-            else:
-                pos = pos + 1
-
-    return found
+            position += 1
+    return found, perf_counter() - start
 
 
-def binary_search_iterative(a_list,item):
+def binary_search_iterative(numbers, item):
+    """Search an ascending sorted list."""
+    start = perf_counter()
     first = 0
-
-    last = len(a_list) - 1
+    last = len(numbers) - 1
     found = False
     while first <= last and not found:
         midpoint = (first + last) // 2
-        if a_list[midpoint] == item:
+        if numbers[midpoint] == item:
             found = True
+        elif item < numbers[midpoint]:
+            last = midpoint - 1
         else:
-            if item < a_list[midpoint]:
-                last = midpoint - 1
-            else:
-                first = midpoint + 1
+            first = midpoint + 1
+    return found, perf_counter() - start
 
-    return found
-    
-    
-def binary_search_recursive(a_list,item):
-    if len(a_list) == 0:
-        return False
-    else:
-        midpoint = len(a_list) // 2
-        if a_list[midpoint] == item:
+
+def binary_search_recursive(numbers, item):
+    """Time the entire recursive search, including list slicing."""
+    def search(values):
+        if not values:
+            return False
+        midpoint = len(values) // 2
+        if values[midpoint] == item:
             return True
-        else:
-            if item < a_list[midpoint]:
-                return binary_search_recursive(a_list[:midpoint], item)
-            else:
-                return binary_search_recursive(a_list[midpoint + 1:], item)
+        if item < values[midpoint]:
+            return search(values[:midpoint])
+        return search(values[midpoint + 1:])
+
+    start = perf_counter()
+    found = search(numbers)
+    return found, perf_counter() - start
+
+
+def main():
+    algorithms = [
+        ("Sequential Search", sequential_search),
+        ("Ordered Sequential Search", ordered_sequential_search),
+        ("Iterative Binary Search", binary_search_iterative),
+        ("Recursive Binary Search", binary_search_recursive),
+    ]
+    for size in (500, 1000, 5000):
+        totals = [0.0] * len(algorithms)
+        for _ in range(100):
+            # The missing target is greater than every generated number.
+            numbers = [random.randint(1, 1000000) for _ in range(size)]
+            _, elapsed = sequential_search(numbers, 99999999)
+            totals[0] += elapsed
+            numbers.sort()  # Sorting is outside every search timer.
+            for index in range(1, len(algorithms)):
+                _, elapsed = algorithms[index][1](numbers, 99999999)
+                totals[index] += elapsed
+        print(f"\nList size: {size}")
+        for (name, _), total in zip(algorithms, totals):
+            time_taken = total / 100
+            print(f"{name} took {time_taken:10.7f} seconds to run, on average")
 
 
 if __name__ == "__main__":
-    """Main entry point"""
-    the_size = 500
-
-    total_time = 0
-    for i in range(100):
-        mylist = get_me_random_list(the_size)
-        # sorting is not needed for sequential search.
-        mylist = sorted(mylist)
-
-        start = time.time()
-        check = binary_search_iterative(mylist, 99999999)
-        time_spent = time.time() - start
-        total_time += time_spent
-
-    avg_time = total_time / 100
-    print(f"Binary Search Iterative took {avg_time:10.7f} seconds to run, on average for a list of {the_size} elements")
+    main()
